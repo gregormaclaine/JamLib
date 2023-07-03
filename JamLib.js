@@ -326,6 +326,125 @@ const JamLib = {
 
       this.update();
     }
+  },
+  Grid: class {
+    /**
+     * Displays a grid shape and gives functions to aid displaying things
+     * in the cells of the grid. Note the width and height in the `shape`
+     * attribute are for the individual cells.
+     *
+     * __P5 Funcs:__ show, handle_click
+     * @param {number[]} shape Size of the grid: `[x, y, w, h, r]`
+     * @param {number[]} dim Dimensions of the grid: `[rows, cols]`
+     * @param {Function} onclick Callback for if a grid cell is clicked
+     */
+    constructor(shape, dim, onclick) {
+      this.shape = shape;
+      this.dim = dim;
+      this.onclick = onclick || (() => 0);
+    }
+
+    get width() {
+      return this.shape[2] * this.dim[0];
+    }
+
+    get height() {
+      return this.shape[3] * this.dim[1];
+    }
+
+    get cellw() {
+      return this.shape[2];
+    }
+
+    get cellh() {
+      return this.shape[3];
+    }
+
+    /**
+     * Returns the x,y coordinate for the center of a particular cell
+     * @param {number} i Row
+     * @param {number} j Column
+     */
+    cell_center(i, j) {
+      let [x, y, w, h, r] = this.shape;
+      let midx = x - (this.dim[0] / 2 - i - 0.5) * w;
+      let midy = y - (this.dim[1] / 2 - j - 0.5) * h;
+      return [midx, midy];
+    }
+
+    /**
+     * Draws the grid to the canvas
+     * @param {string[]} data Optional: Contains the list of strings to be drawn in the cells
+     */
+    show(data = []) {
+      if (this.is_mouse_in_grid()) cursor('pointer');
+
+      let [x, y, w, h, r] = this.shape;
+      if (r === undefined) r = 2;
+
+      const active_cell = this.is_mouse_in_grid()
+        ? this.what_cell(mouseX, mouseY)
+        : [-1, -1];
+
+      for (let i = 0; i < this.dim[0]; i++) {
+        for (let j = 0; j < this.dim[1]; j++) {
+          const [midx, midy] = this.cell_center(i, j);
+          const is_active = active_cell[0] === i && active_cell[1] === j;
+
+          rectMode(CENTER);
+          fill(is_active ? 240 : 255);
+          stroke(0);
+          strokeWeight(1);
+          rect(midx, midy, w, h, r);
+
+          const content = data[j * this.dim[0] + i];
+          if (!content) continue;
+
+          textAlign(CENTER, CENTER);
+          strokeWeight(0);
+          fill(0);
+          textSize(20);
+          text(content, midx, midy);
+        }
+      }
+    }
+
+    /**
+     * Returns whether the mouse is contained in the overall grid.
+     */
+    is_mouse_in_grid() {
+      const [x, y, w, h, r] = this.shape;
+      const [rows, cols] = this.dim;
+      if (mouseX < x - (w * rows) / 2) return false;
+      if (mouseX > x + (w * rows) / 2) return false;
+      if (mouseY < y - (h * cols) / 2) return false;
+      if (mouseY > y + (h * cols) / 2) return false;
+      return true;
+    }
+
+    /**
+     * Returns the cell row and column based on a point in the grid.
+     * @param {number} x X Coordinate
+     * @param {number} y Y Coordinate
+     */
+    what_cell(x, y) {
+      const [midx, midy] = this.shape;
+
+      x -= midx - this.width / 2;
+      y -= midy - this.height / 2;
+
+      return [floor(x / 50), floor(y / 50)];
+    }
+
+    /**
+     * Runs the callback onclick function if mouse is contained in grid cell.
+     */
+    handle_click() {
+      if (this.is_mouse_in_grid()) {
+        const [x, y] = this.what_cell(mouseX, mouseY);
+        this.onclick([x, y], data[y * this.dim[0] + x]);
+      }
+    }
   }
 };
 
